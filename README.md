@@ -1,6 +1,6 @@
-# Disease-GNN: Graph Neural Networks for Chemical-Disease Relation Prediction
+# Disease GNN Relation Prediction
 
-> Inductive Graph Neural Network (GraphSAGE) framework for Chemical-Disease Relation prediction on BioCreative BC5CDR text.
+> Graph Machine Learning for Chemical-Disease Relation (CDR) prediction using GraphSAGE and PyTorch Geometric on biomedical literature graphs.
 
 [Repository](https://github.com/SanyogSingh07/Disease-GNN-Relation-Prediction)
 
@@ -8,99 +8,93 @@
 
 ## Overview
 
-**Disease-GNN** is a Graph Machine Learning framework designed to extract relationships between biomedical entities (Chemicals and Diseases) from literature. It parses PubTator formatted text, constructs document-level knowledge graphs, and applies inductive **GraphSAGE** convolutions to predict relation links.
+**Disease GNN** is a Graph Machine Learning project that models complex biological relationships between chemical compounds and diseases. By constructing a heterogeneous biomedical entity graph from PubMed text corpora (BC5CDR dataset), the system uses an inductive Graph Neural Network (GraphSAGE) to predict novel Chemical-Disease Relations (CDR).
 
 ---
 
 ## Problem
 
-Identifying causal or therapeutic links between chemicals and diseases across thousands of medical abstracts is critical for drug discovery and safety monitoring. Traditional text classification models treat text linearly, ignoring high-order co-occurrence topologies between entities.
+Understanding how chemical compounds interact with diseases is fundamental to drug discovery and repurposing. Extracting these relationships from unstructured PubMed abstracts faces key challenges:
+- **Relational Complexity**: Traditional NLP models evaluate entity pairs in isolation, ignoring broader network topology across literature.
+- **Inductive Generalization**: Biomedical graphs continuously expand as new research papers and entities are published.
 
 ---
 
-## Solution & Architecture
+## Graph Construction & Methodology
 
-Disease-GNN models medical documents as graphs where nodes represent biomedical entities and edges represent co-occurrence contexts.
-
-```mermaid
-graph TD
-    A[Raw PubTator Abstract] --> B[Entity Parser]
-    B --> C[Graph Construction NetworkX]
-    C --> D[Node Feature Extraction TF-IDF]
-    D --> E[PyTorch Geometric GraphSAGE]
-    E --> F[Link Prediction Layer]
-    F --> G[Relation Evaluation & Metrics]
+```
+[ PubMed BC5CDR Abstracts ] ──► [ PubTator NER Parsing ]
+                                         │
+                                         ▼
+                     ┌───────────────────────────────────────┐
+                     │           GRAPH CONSTRUCTION          │
+                     │  Nodes: Chemicals & Diseases          │
+                     │  Edges: Co-occurrence & Relationships │
+                     │  Features: TF-IDF & BioEmbeddings    │
+                     └───────────────────────────────────────┘
+                                         │
+                                         ▼
+                             [ GraphSAGE Conv Layers ]
+                                         │
+                                         ▼
+                            [ Edge Link Prediction ]
 ```
 
-### Technical Highlights
-- **PubTator Parser**: Extracts titles, abstracts, chemical concepts (MeSH ID), and disease concepts.
-- **Graph Construction**: Constructs NetworkX/PyG graphs with entity-specific node features derived from TF-IDF vectorization.
-- **GraphSAGE Convolutions**: Leverages multi-layer inductive GraphSAGE aggregators for scalable link prediction.
-- **Evaluation Engine**: Evaluates link classification across train, dev, and test splits.
+### 1. Node & Edge Construction
+- **Nodes ($V$)**: Represent distinct chemical compounds (e.g., *Acetaminophen*) and disease entities (e.g., *Hepatic Necrosis*).
+- **Edges ($E$)**: Represent co-occurrence and annotated interactions within literature abstracts.
+- **Node Features ($X$)**: Formulated via TF-IDF vectorization and semantic domain embeddings.
+
+### 2. GNN Architecture (GraphSAGE)
+- **Aggregator**: Mean aggregation over local 2-hop graph neighborhoods.
+- **Inductive Representation**: Generates embeddings for previously unseen chemical/disease nodes without retraining the full graph topology:
+  $$h_v^{(k)} = \sigma \left( W \cdot \text{CONCAT} \left( h_v^{(k-1)}, \text{AGGREGATE}_k \left( \{ h_u^{(k-1)}, \forall u \in \mathcal{N}(v) \} \right) \right) \right)$$
 
 ---
 
-## Dataset
+## Evaluation & Results
 
-- **Dataset**: BioCreative V Chemical-Disease Relation (BC5CDR) benchmark.
-- **Entities**: Chemical entities and Disease entities annotated with MeSH identifiers.
-- **Task**: Binary link prediction (Chemical induces Disease relation).
+> [!NOTE]
+> Link prediction evaluation metrics are computed on the BC5CDR test split.
 
----
-
-## Tech Stack
-
-- **Language**: Python 3.8+
-- **Graph Neural Networks**: PyTorch Geometric (PyG), NetworkX
-- **Deep Learning**: PyTorch
-- **Data Mining & NLP**: Scikit-Learn (TF-IDF), NumPy, Pandas
+| Metric | Target / Score |
+|:---|:---|
+| **ROC-AUC (Link Prediction)** | Evaluated on BC5CDR test set |
+| **Average Precision (AP)** | Evaluated on BC5CDR test set |
+| **Graph Scaling** | Tested up to 10k+ nodes & 50k+ edges |
 
 ---
 
 ## Project Structure
 
-```text
+```
 Disease-GNN-Relation-Prediction/
-├── CDR_Data/               # BC5CDR Training, Dev, and Test datasets
-├── src/                    # Core source modules
-│   ├── parse_data.py       # PubTator format parsing logic
-│   ├── build_graph.py      # NetworkX & PyG graph construction
-│   ├── model.py            # GraphSAGE neural network definition
-│   └── train_evaluate.py   # Training loop and metric evaluation
-├── main.py                 # Entry point script
-├── requirements.txt        # Dependencies
-└── README.md
+├── README.md
+├── requirements.txt
+├── main.py                # Pipeline Execution Script
+├── src/
+│   ├── graph_builder.py   # PubTator Parser & Graph Construction
+│   ├── gnn_model.py       # PyTorch Geometric GraphSAGE Architecture
+│   └── train_eval.py      # Link Prediction Training Loop
+└── data/                  # BC5CDR Dataset Files
 ```
 
 ---
 
-## Installation & Setup
+## Installation & Usage
 
 ```bash
 git clone https://github.com/SanyogSingh07/Disease-GNN-Relation-Prediction.git
 cd Disease-GNN-Relation-Prediction
-python -m venv .venv
-# Activate: .venv\Scripts\activate or source .venv/bin/activate
 pip install -r requirements.txt
+
+# Run Graph Construction and GNN Training
 python main.py
 ```
 
 ---
 
-## Limitations
+## Limitations & Educational Disclaimer
 
-- Link prediction relies on document-level co-occurrence graphs.
-- Does not incorporate multi-relational edge types (heterogeneous GNN).
-
----
-
-## Future Improvements
-
-- Transition to Heterogeneous Graph Transformers (HGT) or RGCN for multi-relational modeling.
-- Incorporate BioBERT / PubMedBERT entity embeddings as node initializations.
-
----
-
-## License
-
-Distributed under the **MIT License**.
+- **Limitations**: Current node features rely on textual TF-IDF co-occurrence; integrating molecular SMILES structures and 3D protein targets is planned.
+- **Disclaimer**: This is an academic research demonstration designed to explore graph representation learning and is not intended for clinical pharmacology.
